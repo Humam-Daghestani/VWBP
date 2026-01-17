@@ -1110,6 +1110,21 @@
     <div id="notificationsContainer"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Firebase (compat) for easy inline integration -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+        // Firebase config - used by app initialization
+        window.FIREBASE_CONFIG = {
+            apiKey: "AIzaSyAknz4IdGfPai8lRpLE-nGipVrrmnah0Vo",
+            authDomain: "vwbp-2ec7c.firebaseapp.com",
+            projectId: "vwbp-2ec7c",
+            storageBucket: "vwbp-2ec7c.firebasestorage.app",
+            messagingSenderId: "611486328090",
+            appId: "1:611486328090:web:a46deef21762489aeb78a3"
+        };
+        console.log('✅ Firebase config loaded:', window.FIREBASE_CONFIG.projectId);
+    </script>
     <script>
         class BakeryApp {
             constructor() {
@@ -1259,7 +1274,17 @@
                 this.ensureAllUserPermissionDefaults();
                 this.setupRealtimeSync();
                 this.initializeRememberMe();
+                this.instanceId = this.getOrCreateInstanceId();
+                this.initializeCloudSync();
             }
+                getOrCreateInstanceId() {
+                    let id = localStorage.getItem('bakeryInstanceId');
+                    if (!id) {
+                        id = 'inst_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+                        localStorage.setItem('bakeryInstanceId', id);
+                    }
+                    return id;
+                }
                 logout() {
                     this.currentUser = null;
                     this.clearRememberedSession();
@@ -1382,6 +1407,11 @@
                     , operationShiftMeta: this.operationShiftMeta
                 }));
                 this.broadcastUpdate();
+                if (!this._skipNextCloudPush) {
+                    this.pushCloudUpdateSafe();
+                } else {
+                    this._skipNextCloudPush = false;
+                }
             }
 
             setupRealtimeSync() {
@@ -1396,6 +1426,105 @@
 
             broadcastUpdate() {
                 window.dispatchEvent(new Event('bakeryDataChanged'));
+            }
+
+            /* ===== Cloud Sync (Firebase Firestore) ===== */
+            initializeCloudSync() {
+                try {
+                    console.log('🔥 Cloud sync init start');
+                    if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.projectId) {
+                        console.warn('❌ FIREBASE_CONFIG missing or no projectId');
+                        this._cloud = { enabled: false };
+                        return;
+                    }
+                    console.log('✅ FIREBASE_CONFIG found:', window.FIREBASE_CONFIG.projectId);
+                    if (typeof firebase === 'undefined') {
+                        console.warn('❌ Firebase SDK not loaded');
+                        this._cloud = { enabled: false };
+                        return;
+                    }
+                    console.log('✅ Firebase SDK loaded');
+                    if (firebase.apps.length === 0) {
+                        firebase.initializeApp(window.FIREBASE_CONFIG);
+                        console.log('✅ Firebase app initialized');
+                    }
+                    const db = firebase.firestore();
+                    const docRef = db.collection('tenants').doc('default');
+                    this._cloud = { enabled: true, db, docRef, unsub: null };
+                    console.log('✅ Firestore db connected');
+
+                    // Start listener
+                    this._cloud.unsub = docRef.onSnapshot((snap) => {
+                        console.log('🔔 Cloud listener triggered, exists:', snap.exists);
+                        if (!snap.exists) return;
+                        const payload = snap.data() || {};
+                        if (payload.lastWriteBy && payload.lastWriteBy === this.instanceId) return;
+                        if (payload.appData) {
+                            try {
+                                localStorage.setItem('bakeryAppData', JSON.stringify(payload.appData));
+                                this._skipNextCloudPush = true; // avoid echo
+                                this.loadFromStorage();
+                                this.refreshCurrentPage();
+                                console.log('✅ Cloud sync applied');
+                            } catch (e) {
+                                console.warn('Cloud sync apply failed', e);
+                            }
+                        }
+                    }, (err) => console.warn('☁️ Cloud listener error', err));
+
+                    // Ensure doc exists on first run
+                    docRef.get().then((d) => {
+                        if (!d.exists) {
+                            console.log('📝 Doc does not exist, creating...');
+                            this.pushCloudUpdateSafe(true);
+                        } else {
+                            console.log('✅ Doc exists');
+                        }
+                    }).catch((err)=>{
+                        console.warn('Error checking doc:', err);
+                    });
+                } catch (err) {
+                    console.warn('Failed to initialize cloud sync', err);
+                    this._cloud = { enabled: false };
+                }
+            }
+
+            pushCloudUpdateSafe(force = false) {
+                if (!this._cloud || !this._cloud.enabled || !this._cloud.docRef) {
+                    console.warn('❌ Cloud not ready, skipping push');
+                    return;
+                }
+                try {
+                    const state = {
+                        users: this.users,
+                        products: this.products,
+                        orders: this.orders,
+                        stockItems: this.stockItems,
+                        stockTransactions: this.stockTransactions,
+                        customers: this.customers,
+                        operations: this.operations,
+                        packaging: this.packaging,
+                        production: this.production,
+                        categories: this.categories,
+                        manufacturingRuns: this.manufacturingRuns,
+                        odooRequirements: this.odooRequirements,
+                        odooImportMeta: this.odooImportMeta,
+                        productionArchives: this.productionArchives,
+                        operationShiftMeta: this.operationShiftMeta
+                    };
+                    console.log('📤 Pushing to Firebase...');
+                    this._cloud.docRef.set({
+                        appData: state,
+                        lastWriteBy: this.instanceId,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true }).then(() => {
+                        console.log('✅ Firebase push successful');
+                    }).catch(err => {
+                        console.warn('❌ Cloud push failed', err.message);
+                    });
+                } catch (e) {
+                    console.warn('pushCloudUpdateSafe error', e);
+                }
             }
 
             initializeRememberMe() {
