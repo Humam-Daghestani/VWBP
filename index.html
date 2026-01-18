@@ -73,8 +73,16 @@
 
     <!-- DASHBOARD -->
     <div class="dashboard" id="dashboard">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="app.toggleMobileSidebar()" style="display:none">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <!-- Mobile Sidebar Overlay -->
+        <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay" onclick="app.toggleMobileSidebar()"></div>
         <!-- SIDEBAR -->
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">🍞 Bakery Admin</div>
 
             <div class="user-info">
@@ -1913,6 +1921,19 @@
                         return;
                     }
                 }
+                
+                // Close mobile sidebar if open
+                if (window.innerWidth <= 768) {
+                    const sidebar = document.getElementById('sidebar');
+                    const toggle = document.getElementById('mobileMenuToggle');
+                    const overlay = document.getElementById('mobileSidebarOverlay');
+                    if (sidebar && sidebar.classList.contains('mobile-open')) {
+                        sidebar.classList.remove('mobile-open');
+                        if (toggle) toggle.classList.remove('active');
+                        if (overlay) overlay.classList.remove('active');
+                    }
+                }
+                
                 // Hide all pages (remove active and clear inline display)
                 document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
 
@@ -3315,6 +3336,19 @@
             goBack() {
                 // For now, back returns to dashboard
                 this.showDashboard();
+            }
+
+            toggleMobileSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const toggle = document.getElementById('mobileMenuToggle');
+                const overlay = document.getElementById('mobileSidebarOverlay');
+                if (sidebar && toggle) {
+                    const isOpen = sidebar.classList.toggle('mobile-open');
+                    toggle.classList.toggle('active');
+                    if (overlay) {
+                        overlay.classList.toggle('active', isOpen);
+                    }
+                }
             }
 
             showTopNav(visible) {
