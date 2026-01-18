@@ -7,10 +7,14 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- TOP NAV: Home / Back -->
+    <!-- TOP NAV: Home / Mobile Menu Toggle -->
     <div class="top-nav" id="topNav" style="display:none">
+        <button class="mobile-menu-toggle-top" id="mobileMenuToggleTop" onclick="app.toggleMobileSidebar()" style="display:none">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
         <button class="btn-home" onclick="app.goHome()">🏠 Home</button>
-        <button class="btn-back" onclick="app.goBack()">↩ Back</button>
     </div>
     <!-- LOGIN PAGE -->
     <div class="login-page" id="loginPage">
@@ -73,14 +77,6 @@
 
     <!-- DASHBOARD -->
     <div class="dashboard" id="dashboard">
-        <!-- Mobile Menu Toggle -->
-        <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="app.toggleMobileSidebar()" style="display:none">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
-        <!-- Mobile Sidebar Overlay -->
-        <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay" onclick="app.toggleMobileSidebar()"></div>
         <!-- SIDEBAR -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">🍞 Bakery Admin</div>
@@ -3340,11 +3336,15 @@
 
             toggleMobileSidebar() {
                 const sidebar = document.getElementById('sidebar');
-                const toggle = document.getElementById('mobileMenuToggle');
+                const toggle = document.getElementById('mobileMenuToggleTop');
+                const toggleDash = document.getElementById('mobileMenuToggle');
                 const overlay = document.getElementById('mobileSidebarOverlay');
-                if (sidebar && toggle) {
+                
+                // Use whichever toggle is visible
+                const activeToggle = toggle || toggleDash;
+                if (sidebar && activeToggle) {
                     const isOpen = sidebar.classList.toggle('mobile-open');
-                    toggle.classList.toggle('active');
+                    activeToggle.classList.toggle('active');
                     if (overlay) {
                         overlay.classList.toggle('active', isOpen);
                     }

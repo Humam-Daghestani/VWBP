@@ -242,8 +242,69 @@ img, video, canvas, svg {
     background: #f5f5f5;
 }
 
-.dashboard.active {
+.top-nav {
     display: flex;
+    gap: 10px;
+    padding: 12px 15px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    align-items: center;
+}
+
+.btn-home {
+    background: #008187;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.btn-home:hover {
+    background: #006b70;
+}
+
+.mobile-menu-toggle-top {
+    background: #008187;
+    border: none;
+    border-radius: 8px;
+    width: 45px;
+    height: 45px;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    padding: 8px;
+}
+
+.mobile-menu-toggle-top span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background: white;
+    border-radius: 2px;
+    transition: all 0.3s;
+}
+
+.mobile-menu-toggle-top:hover {
+    background: #006b70;
+}
+
+.mobile-menu-toggle-top.active span:nth-child(1) {
+    transform: rotate(45deg) translate(7px, 7px);
+}
+
+.mobile-menu-toggle-top.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle-top.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
 }
 
 .mobile-menu-toggle {
@@ -840,6 +901,14 @@ img, video, canvas, svg {
 @media (max-width: 768px) {
     .mobile-menu-toggle {
         display: flex !important;
+    }
+
+    .mobile-menu-toggle-top {
+        display: flex !important;
+    }
+
+    .btn-back {
+        display: none !important;
     }
 
     .mobile-sidebar-overlay {
