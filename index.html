@@ -1700,8 +1700,13 @@
                 if (!moduleKey) return true;
                 if (!user) return true;
                 this.ensureUserPermissionDefaultsForUser(user);
-                if (!this.permissionCatalog[moduleKey]) return true;
-                return !!user.modulePermissions[moduleKey];
+                // If module is in catalog, check explicit permission
+                if (this.permissionCatalog[moduleKey]) {
+                    const hasPerm = user.modulePermissions && !!user.modulePermissions[moduleKey];
+                    return hasPerm;
+                }
+                // If module not in catalog, allow access (backwards compat)
+                return true;
             }
 
             hasFeatureAccess(moduleKey, featureKey, user = this.currentUser) {
@@ -1803,6 +1808,9 @@
                     visible = modules.filter(m => ['orders','shop'].includes(m.id));
                 } else if (role === 'manager') {
                     visible = modules.filter(m => ['customers','stock','orders','production','operation','packaging','logistic','reports','shop'].includes(m.id));
+                } else if (role === 'admin') {
+                    // Admin sees all except shop by default (but shop is accessible)
+                    visible = modules;
                 }
 
                 visible = visible.filter(module => this.hasModuleAccess(module.id));
